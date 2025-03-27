@@ -1,4 +1,4 @@
-#include "../inc/character.h"
+#include "character.h"
 
 // Initialize character
 void InitCharacter(Character *character) {

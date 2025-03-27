@@ -6,10 +6,10 @@
 *
 ********************************************************************************************/
 
-#include "../inc/common.h"
-#include "../inc/character.h"
-#include "../inc/enemy.h"
-#include "../inc/projectile.h"
+#include "common.h"
+#include "character.h"
+#include "enemy.h"
+#include "projectile.h"
 
 //------------------------------------------------------------------------------------
 // Program main entry point

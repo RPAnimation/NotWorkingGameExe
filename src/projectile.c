@@ -1,4 +1,4 @@
-#include "../inc/projectile.h"
+#include "projectile.h"
 
 // Initialize all projectiles
 void InitProjectiles(Projectile *projectiles, int count) {
