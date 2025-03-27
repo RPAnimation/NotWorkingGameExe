@@ -9,6 +9,7 @@ not_working_game_exe
 .idea/
 *.swp
 *~
+.cache/
 
 # OS generated files
 .DS_Store
