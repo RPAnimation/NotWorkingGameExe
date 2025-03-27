@@ -1,15 +1,15 @@
 CC = gcc
 OUT = not_working_game_exe
 
-SRCDIR	= src/
-INCDIR	= inc/
-OBJDIR	= .obj/
+SRCDIR	= src
+INCDIR	= inc
+OBJDIR	= .obj
 
 CFILES   = $(wildcard $(SRCDIR)/*.c)
 
 COBJS = $(patsubst $(SRCDIR)%.c,$(OBJDIR)%.o,$(CFILES))
 
-DEPS = $(COBJS:.o=.d) $(CPPOBJS:.o=.d)
+DEPS = $(COBJS:.o=.d)
 
 CFLAGS = -g -Wall -pthread -I$(INCDIR) -MP -MD
 LDLIBS	 = -lraylib -lglfw -lGL -lm -lpthread -ldl -lrt

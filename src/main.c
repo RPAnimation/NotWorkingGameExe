@@ -9,6 +9,7 @@
 #include "../inc/common.h"
 #include "../inc/character.h"
 #include "../inc/enemy.h"
+#include "../inc/projectile.h"
 
 //------------------------------------------------------------------------------------
 // Program main entry point
@@ -21,19 +22,20 @@ int main(void)
     const int screenHeight = 720;
 
     InitWindow(screenWidth, screenHeight, "Not Working Game Exe");
+    
+    // No cursor capture - cursor remains visible and free
 
     // Initialize character
-    Character player = {
-        .position = (Vector3){ 0.0f, 0.0f, 0.0f },
-        .size = (Vector3){ 1.0f, 2.0f, 1.0f },
-        .rotation = 0.0f,
-        .speed = 0.2f,
-        .color = RED
-    };
+    Character player;
+    InitCharacter(&player);
 
     // Initialize enemies
     Enemy enemies[MAX_ENEMIES];
     InitEnemies(enemies, MAX_ENEMIES, player.position);
+
+    // Initialize projectiles
+    Projectile projectiles[MAX_PROJECTILES];
+    InitProjectiles(projectiles, MAX_PROJECTILES);
 
     // Initialize camera
     Camera3D camera = {
@@ -53,8 +55,14 @@ int main(void)
     // Main game loop
     while (!WindowShouldClose())    // Detect window close button or ESC key
     {
+        // Calculate delta time
+        float deltaTime = GetFrameTime();
+        
         // Update
         //----------------------------------------------------------------------------------
+        
+        // Update character
+        UpdateCharacter(&player, deltaTime);
         
         // Process keyboard input independently for each direction
         // This ensures multiple keys can be processed simultaneously
@@ -90,13 +98,87 @@ int main(void)
             // Normalize using raylib's function
             moveDirection = Vector3Normalize(moveDirection);
             
-            // Update player position
-            player.position.x += moveDirection.x * player.speed;
-            player.position.z += moveDirection.z * player.speed;
+            // Calculate new position
+            Vector3 newPosition = player.position;
+            newPosition.x += moveDirection.x * player.speed;
+            newPosition.z += moveDirection.z * player.speed;
+            
+            // Check collision with each enemy
+            bool collision = false;
+            for (int i = 0; i < MAX_ENEMIES; i++) {
+                BoundingBox playerBox = GetBoundingBox(newPosition, player.size);
+                BoundingBox enemyBox = GetBoundingBox(enemies[i].position, enemies[i].size);
+                
+                if (CheckCollisionBoxes(playerBox, enemyBox)) {
+                    collision = true;
+                    // Get corrected position that doesn't collide
+                    newPosition = GetCorrectedPosition(player.position, newPosition, player.size, 
+                                                        enemies[i].position, enemies[i].size);
+                }
+            }
+            
+            // Update player position with collision-aware position
+            player.position = newPosition;
         }
         
-        // Update enemies with A* pathfinding
-        UpdateEnemies(enemies, MAX_ENEMIES, player.position);
+        // Handle player shooting with mouse
+        if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
+            ShootPlayerProjectile(&player, projectiles, MAX_PROJECTILES, &camera, GetMousePosition());
+        }
+        
+        // Update enemies with steering behaviors and shooting
+        UpdateEnemies(enemies, MAX_ENEMIES, player.position, projectiles, MAX_PROJECTILES, deltaTime);
+        
+        // Update projectiles
+        UpdateProjectiles(projectiles, MAX_PROJECTILES, deltaTime);
+        
+        // Check for projectile collisions with player
+        for (int i = 0; i < MAX_PROJECTILES; i++) {
+            // Only check enemy projectiles
+            if (projectiles[i].active && projectiles[i].type == PROJECTILE_ENEMY) {
+                if (CheckProjectileCollision(projectiles[i], 
+                                            (Vector3){player.position.x, player.position.y + 1.0f, player.position.z}, 
+                                            0.5f)) {
+                    // Player hit by projectile
+                    projectiles[i].active = false;
+                    
+                    // You could implement player health/damage here
+                    // For example: player.health -= 10;
+                }
+            }
+        }
+        
+        // Check for player projectile collisions with enemies
+        for (int i = 0; i < MAX_PROJECTILES; i++) {
+            // Only check player projectiles
+            if (projectiles[i].active && projectiles[i].type == PROJECTILE_PLAYER) {
+                for (int j = 0; j < MAX_ENEMIES; j++) {
+                    if (CheckProjectileCollision(projectiles[i], 
+                                                (Vector3){enemies[j].position.x, enemies[j].position.y + 1.0f, enemies[j].position.z}, 
+                                                0.5f)) {
+                        // Enemy hit by projectile
+                        projectiles[i].active = false;
+                        
+                        // Damage enemy
+                        enemies[j].health -= 25.0f;
+                        
+                        // Change enemy color when hit
+                        enemies[j].color = PURPLE;
+                        
+                        // If enemy health drops to 0 or below, "kill" it
+                        if (enemies[j].health <= 0) {
+                            // Reset enemy position far away
+                            enemies[j].position.x = GetRandomValue(-GRID_SIZE, GRID_SIZE);
+                            enemies[j].position.z = GetRandomValue(-GRID_SIZE, GRID_SIZE);
+                            enemies[j].health = 100.0f;
+                            enemies[j].color = BLUE;
+                        }
+                        
+                        break; // Break out of enemy loop after hit
+                    }
+                }
+            }
+        }
         
         // Update camera to follow the player with isometric perspective
         camera.target = player.position;
@@ -119,18 +201,27 @@ int main(void)
                 // Draw grid floor
                 DrawGrid(gridSize, 1.0f);
                 
-                // Draw the player character (as a cube)
-                DrawCube(player.position, player.size.x, player.size.y, player.size.z, player.color);
-                DrawCubeWires(player.position, player.size.x, player.size.y, player.size.z, BLACK);
+                // Draw the player character
+                DrawCharacter(&player);
                 
                 // Draw enemies
                 DrawEnemies(enemies, MAX_ENEMIES);
+                
+                // Draw projectiles
+                DrawProjectiles(projectiles, MAX_PROJECTILES);
                 
             EndMode3D();
             
             // Draw UI
             DrawText("Use WASD or Arrow Keys to move", 10, 10, 20, BLACK);
-            DrawText(TextFormat("Enemies: %d", MAX_ENEMIES), 10, 40, 20, BLACK);
+            DrawText("Left-click to shoot at cursor position", 10, 40, 20, BLACK);
+            
+            // Display debug information
+            DrawText(TextFormat("Cursor position: %i, %i", GetMouseX(), GetMouseY()), 10, 70, 20, BLACK);
+            DrawText(TextFormat("Player cooldown: %.2f", player.shootTimer), 10, 100, 20, BLACK);
+            DrawText(TextFormat("Active projectiles: %i", CountActiveProjectiles(projectiles, MAX_PROJECTILES)), 10, 130, 20, BLACK);
+            
+            DrawFPS(screenWidth - 100, 10);
 
         EndDrawing();
         //----------------------------------------------------------------------------------
