@@ -9,7 +9,7 @@
 #include "raylib.h"
 #include "raymath.h"
 #include <math.h>
-
+#include <stdio.h>
 // Character structure
 typedef struct {
     Vector3 position;      // 3D position
@@ -26,10 +26,10 @@ int main(void)
 {
     // Initialization
     //--------------------------------------------------------------------------------------
-    const int screenWidth = 800;
-    const int screenHeight = 600;
+    const int screenWidth = 1280;
+    const int screenHeight = 720;
 
-    InitWindow(screenWidth, screenHeight, "Isometric Shooter Game");
+    InitWindow(screenWidth, screenHeight, "Not Working Game Exe");
 
     // Initialize character
     Character player = {
@@ -61,29 +61,46 @@ int main(void)
         // Update
         //----------------------------------------------------------------------------------
         
-        // Move character with WASD and arrow keys
-        Vector3 moveDirection = {0};
-
-        // Forward and backward movement
-        if (IsKeyDown(KEY_W) || IsKeyDown(KEY_UP)) moveDirection.z -= 1.0f;
-        if (IsKeyDown(KEY_S) || IsKeyDown(KEY_DOWN)) moveDirection.z += 1.0f;
+        // Process keyboard input independently for each direction
+        // This ensures multiple keys can be processed simultaneously
+        bool upPressed = IsKeyDown(KEY_W) || IsKeyDown(KEY_UP);
+        bool downPressed = IsKeyDown(KEY_S) || IsKeyDown(KEY_DOWN);
+        bool leftPressed = IsKeyDown(KEY_A) || IsKeyDown(KEY_LEFT);
+        bool rightPressed = IsKeyDown(KEY_D) || IsKeyDown(KEY_RIGHT);
         
-        // Left and right movement
-        if (IsKeyDown(KEY_A) || IsKeyDown(KEY_LEFT)) moveDirection.x -= 1.0f;
-        if (IsKeyDown(KEY_D) || IsKeyDown(KEY_RIGHT)) moveDirection.x += 1.0f;
+        // Build movement vector based on key states
+        Vector3 moveDirection = {0.0f, 0.0f, 0.0f};
         
-        // Normalize movement vector to ensure consistent speed in all directions
-        if (!((moveDirection.x == 0) && (moveDirection.z == 0))) {
-            float length = sqrtf(moveDirection.x*moveDirection.x + moveDirection.z*moveDirection.z);
-            moveDirection.x /= length;
-            moveDirection.z /= length;
+        // Apply individual directional inputs for isometric movement
+        if (upPressed) {
+            moveDirection.x -= 1.0f; // Move left and forward for up
+            moveDirection.z -= 1.0f;
+        }
+        if (downPressed) {
+            moveDirection.x += 1.0f; // Move right and backward for down
+            moveDirection.z += 1.0f;
+        }
+        if (leftPressed) {
+            moveDirection.x -= 1.0f; // Move left and backward for left
+            moveDirection.z += 1.0f;
+        }
+        if (rightPressed) {
+            moveDirection.x += 1.0f; // Move right and forward for right
+            moveDirection.z -= 1.0f;
+        }
+        
+        // Apply movement if there is any
+        float moveLength = Vector3Length(moveDirection);
+        if (moveLength > 0.0f) {
+            // Normalize using raylib's function
+            moveDirection = Vector3Normalize(moveDirection);
             
             // Update player position
             player.position.x += moveDirection.x * player.speed;
             player.position.z += moveDirection.z * player.speed;
-            
-            // Calculate rotation based on movement direction
-            player.rotation = atan2f(moveDirection.x, moveDirection.z) * RAD2DEG;
+            printf("moveDirection: %f, %f, %f\n", moveDirection.x, moveDirection.y, moveDirection.z);
+            printf("player.position: %f, %f, %f\n", player.position.x, player.position.y, player.position.z);
+        
         }
         
         // Update camera to follow the player with isometric perspective
