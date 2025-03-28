@@ -45,6 +45,7 @@ int main(void)
         .fovy = 45.0f,                                   // Camera field-of-view Y
         .projection = CAMERA_PERSPECTIVE                 // Perspective projection
     };
+    
 
     // Create a grid for the floor
     const int gridSize = GRID_SIZE;
@@ -104,13 +105,11 @@ int main(void)
             newPosition.z += moveDirection.z * player.speed;
             
             // Check collision with each enemy
-            bool collision = false;
             for (int i = 0; i < MAX_ENEMIES; i++) {
                 BoundingBox playerBox = GetBoundingBox(newPosition, player.size);
                 BoundingBox enemyBox = GetBoundingBox(enemies[i].position, enemies[i].size);
                 
                 if (CheckCollisionBoxes(playerBox, enemyBox)) {
-                    collision = true;
                     // Get corrected position that doesn't collide
                     newPosition = GetCorrectedPosition(player.position, newPosition, player.size, 
                                                         enemies[i].position, enemies[i].size);

@@ -1,8 +1,9 @@
 #ifndef ENEMY_H
 #define ENEMY_H
 
-#include "common.h"
 #include "projectile.h"
+
+#define MIN_DISTANCE_TO_SHOOT 15.0f
 
 // Enemy structure
 typedef struct {
