@@ -9,7 +9,6 @@ not_working_game_exe
 .idea/
 *.swp
 *~
-.cache/
 
 # OS generated files
 .DS_Store
@@ -24,3 +23,7 @@ Thumbs.db
 *.dll
 *.so
 *.dylib 
+
+# Clangd specifig
+.cache/
+compile_commands.json
